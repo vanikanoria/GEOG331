@@ -16,3 +16,5 @@ v <- c(3, 4, 5, 6)
 
 #multiply my vector by my number
 v*a
+
+
