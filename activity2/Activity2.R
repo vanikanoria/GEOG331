@@ -162,6 +162,7 @@ prcp_hist <- hist(datW$PRCP[datW$siteN == 1],
      main = paste(levels(datW$NAME)[1]),
      xlab = "Daily Precipitation (mm)", 
      ylab="Relative frequency",
+     xlim = c(0, 100),
      col="purple",
      border="white")
 prcp_hist
