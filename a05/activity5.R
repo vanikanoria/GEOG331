@@ -288,7 +288,7 @@ ylab(expression(paste("Discharge ft"^"3 ","sec"^"-1"))) + ggtitle ("Discharge by
 ggplot(data= datD[datD$year==2017,], aes(seasons,discharge)) + 
   geom_violin(fill= "yellow", trim=FALSE, show.legend=FALSE) +
   
-  xlab("Seasons of 2016") +
+  xlab("Seasons of 2017") +
   ylab(expression(paste("Discharge ft"^"3 ","sec"^"-1"))) + ggtitle ("Discharge by season:2017")
 
 
