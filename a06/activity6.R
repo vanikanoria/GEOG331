@@ -1,4 +1,5 @@
 #install.packages(c("raster","sp","rgdal","rgeos","plyr"))
+
 library(raster)
 library(sp)
 library(rgdal)
@@ -103,18 +104,95 @@ str(NDVIraster[[1]])
 #get projection
 NDVIraster[[1]]@crs
 
+## Question 3:
 plot(NDVIraster[[1]])
 
-## Question 3:
+plot(g1966, col="tan3", border=NA, add=TRUE)
+
+# making a plot of the 2003 NDVI data side by side with the 1966 glacier extent
+par(mfrow=c(1,2))
+# 2003 DVI plot
+plot(NDVIraster[[1]], axes=TRUE)
+axis(side = 1, labels = TRUE)
+
+# 1966 glacier plot
+plotRGB(rgbL, stretch="lin", axes=TRUE)
+plot(g1966, col="tan3", border=NA, add=TRUE)
+
+#reproject the glaciers
+#use the NDVI projection
+#spTransform(file to project, new coordinate system)
+g1966p <- spTransform(g1966,NDVIraster[[1]]@crs)
+g1998p <- spTransform(g1998,NDVIraster[[1]]@crs)
+g2005p <- spTransform(g2005,NDVIraster[[1]]@crs)
+g2015p <- spTransform(g2015,NDVIraster[[1]]@crs)
+
+## Question 4
+par(mai=c(1,1,1,1))
+plot(NDVIraster[[length(ndviYear) -1]], axes = FALSE, frame.plot = TRUE)
+plot(g2015p, col= NA, border="black", add=TRUE)
+axis(side = 1, labels = FALSE)
+axis(side = 2, labels = FALSE)
+
+## end of Question 4
+#calculate area for all polygons
+#add directly into data table for each shapefile
+g1966p@data$a1966m.sq <- area(g1966p)
+g1998p@data$a1998m.sq <- area(g1998p)
+g2005p@data$a2005m.sq <- area(g2005p)
+g2015p@data$a2015m.sq <- area(g2015p)
+
+#joining the data together
+gAllp1 <- join(g1966p@data,g1998p@data, by="GLACNAME", type="full")
+gAllp2 <- join(gAllp1,g2005p@data, by="GLACNAME", type="full")
+gAll <- join(gAllp2,g2015p@data, by="GLACNAME", type="full")
+
+plot(c(1966,1998,2005,2015), 
+     c(gAll$a1966m.sq[1],gAll$a1998m.sq[1], gAll$a2005m.sq[1],gAll$a2015m.sq[1]),
+     type="b", 
+     pch=19, col=rgb(0.5,0.5,0.5,0.5), xlim= c(1965,2016),
+     ylim=c(0,2000000),
+     ylab="Area of glacier (meters squared)",
+     xlab="Year")
+
+for(i in 2:39){
+  points(c(1966,1998,2005,2015), 
+         c(gAll$a1966m.sq[i],gAll$a1998m.sq[i], gAll$a2005m.sq[i],gAll$a2015m.sq[i]),
+         type="b", 
+         pch=19, col=rgb(0.5,0.5,0.5,0.5))
+  
+}   
+
+### Question 5
+
+# % change in area between 1966 and 2015
+percent_change_in_area = abs(g2015p@data$a2015m.sq - g1966p@data$a1966m.sq)*100/g1966p@data$a1966m.sq
+g2015p@data$percent_change_in_area_since_1966 <- percent_change_in_area
+spplot(NDVIraster[[length(ndviYear) -1]], zcol=g2015p@datapercent_change_in_area_since_1966)
+spplot(g2015@data$percent_change_in_area_since_1966,  add=TRUE, border=NA)
+
+### Question 6
+
+#glacier with the largest % loss
+largest_loss_glacier_name <- g2015p@data$GLACNAME[g2015p@data$percent_change_in_area == 
+                       max(g2015p@data$percent_change_in_area)]
+largest_loss_glacier_name
+
+boulder2015 <- g2015p[g2015p@data$GLACNAME == "Boulder Glacier"]
+boulder2005 <- g2005p[g2005p@data$GLACNAME == "Boulder Glacier"]
+boulder1998 <- g1998p[g1998p@data$GLACNAME == "Boulder Glacier"]
+boulder1966 <- g1966p[g1966p@data$GLACNAME == "Boulder Glacier"]
+
+par(mai=c(1,1,1,1))
+plot(boulder1966, col="yellow2", border=NA )
+plot(boulder2005, col="blue", border=NA, add=TRUE)
+plot(boulder1998, col="palegreen2", add=TRUE, border=NA)
+plot(boulder2015, col= "navyblue", add=TRUE, border=NA)
+
+#background imagery
+# ADD MAP TITLE
 
 
 ###from start:
 # plot(g1966)
-# plot(g1966, color = "black", axes = TRUE)
-# str(g1966)
-# #subpolygons within polygons
-# 
-# g1966@polygons[[1]]@Polygons[[1]]
-# #this is vector data
-# #google the projections to understand it
-# 
+
