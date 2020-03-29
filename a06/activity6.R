@@ -165,8 +165,22 @@ for(i in 2:39){
 
 ### Question 5
 
+#extract NDVI values
+NDVIdiff <- list()
+meanDiff <- numeric(0)
+#loop through all NDVI years
+for(i in 1:length(ndviYear)){
+  #get raster values in the difference polygon
+  NDVIdiff[[i]] <- extract(NDVIraster[[i]],diffPoly)[[1]]
+  #calculate the mean of the NDVI values
+  meanDiff[i] <- mean(NDVIdiff[[i]], na.rm=TRUE)
+}
+
 # % change in area between 1966 and 2015
-percent_change_in_area = abs(g2015p@data$a2015m.sq - g1966p@data$a1966m.sq)*100/g1966p@data$a1966m.sq
+percent_change_in_area <- list()
+for (i in 1:length(g2015p)){
+  percent_change_in_area[i] = abs(g2015p@data$a2015m.sq[i] - g1966p@data$a1966m.sq[i])*100/g1966p@data$a1966m.sq[i]
+}
 g2015p@data$percent_change_in_area_since_1966 <- percent_change_in_area
 spplot(NDVIraster[[length(ndviYear) -1]], zcol=g2015p@datapercent_change_in_area_since_1966)
 spplot(g2015@data$percent_change_in_area_since_1966,  add=TRUE, border=NA)
@@ -178,10 +192,14 @@ largest_loss_glacier_name <- g2015p@data$GLACNAME[g2015p@data$percent_change_in_
                        max(g2015p@data$percent_change_in_area)]
 largest_loss_glacier_name
 
+for (i in 1:39){
 boulder2015 <- g2015p[g2015p@data$GLACNAME == "Boulder Glacier"]
-boulder2005 <- g2005p[g2005p@data$GLACNAME == "Boulder Glacier"]
+boulder2005<- g2005p[g2005p@data$GLACNAME == "Boulder Glacier"]
 boulder1998 <- g1998p[g1998p@data$GLACNAME == "Boulder Glacier"]
 boulder1966 <- g1966p[g1966p@data$GLACNAME == "Boulder Glacier"]
+}
+boulder2015 <- ifelse(g2015@data$GLACNAME == "Boulder Glacier","N. Swiftcurrent Glacier",ifelse(g2015@data$GLACNAME ==  "Miche Wabun", 
+                                          "Miche Wabun Glacier", as.character(g2015@data$GLACNAME)))
 
 par(mai=c(1,1,1,1))
 plot(boulder1966, col="yellow2", border=NA )
@@ -192,7 +210,39 @@ plot(boulder2015, col= "navyblue", add=TRUE, border=NA)
 #background imagery
 # ADD MAP TITLE
 
+#designate that NDVIraster list is a stack
+NDVIstack <- stack(NDVIraster)
+#set up lm function to apply to every cell
+#where x is the value of a cell
+#need to first skip NA values (like lakes)
+#if NA is missing in first raster, it is missing in all
+#so we can tell R to assign an NA rather than fitting the function
+timeT <- ndviYear
+fun <- function(x) {
+  if(is.na(x[1])){
+    NA}else{
+      #fit a regression and extract a slope
+      lm(x ~ timeT)$coefficients[2] }}
+#apply the slope function to the rasters
+NDVIfit <- calc(NDVIstack,fun)
+#plot the change in NDVI
+plot(NDVIfit, axes=FALSE)
 
-###from start:
-# plot(g1966)
+## End of Question 7
+#buffer glaciers
+glacier500m <- gBuffer(g1966p,#data to buffer
+                       byid=TRUE,#keeps original shape id 
+                       width=500)#width in coordinate system units
+
+#convert to a raster
+buffRaster <- rasterize(glacier500m,#vector to convert to raster
+                        NDVIraster[[1]], #raster to match cells and extent
+                        field=glacier500m@data$GLACNAME, #field to convert to raster data
+                        background=0)#background value for missing data
+plot(buffRaster)
+
+glacRaster <- rasterize(g1966p, NDVIraster[[1]], field=g1966p@data$GLACNAME, background=0)
+#subtract buffer from original glacier
+glacZones <- buffRaster - glacRaster
+plot(glacZones)
 
