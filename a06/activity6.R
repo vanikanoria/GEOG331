@@ -194,19 +194,24 @@ spplot(g2015p, "percent_change_in_area_since_1966")
 largest_loss_glacier_name <- g2015p@data$GLACNAME[g2015p@data$percent_change_in_area == 
                        max(g2015p@data$percent_change_in_area)]
 largest_loss_glacier_name
+#to find its % change in area
+max(g2015p@data$percent_change_in_area)
 
 #map plot
 par(mar=c(1,1,1,1))
-plot(subset(g1966,g1966p@data$GLACNAME == "Boulder Glacier"),col="yellow2",border=NA, add=T )
+
+#background
+ext1<-extent(273226.6, 274570.3, 5426883, 5427902)
+plotRGB(rgbL,ext=ext1)
+
+plot(subset(g1966,g1966p@data$GLACNAME == "Boulder Glacier"),col="yellow2",border=NA, add=TRUE)
 plot(subset(g1998,g1998@data$GLACNAME == "Boulder Glacier"),col= "palegreen2",border=NA, add=TRUE)
 plot(subset(g2005,g2005@data$GLACNAME == "Boulder Glacier"),col="blue",border=NA, add=TRUE)
 plot(subset(g2015,g2015@data$GLACNAME == "Boulder Glacier"),col= "navyblue",border=NA, add=TRUE)
 
-legend(legend=c("1966", 1998, 2005, 2015), col= c("yellow2","palegreen2", "blue","navyblue"), "bottomleft", fill=TRUE)
-title()
+legend(legend=c(1966, 1998, 2005, 2015), fill= c("yellow2","palegreen2", "blue","navyblue"), "left")
+title("Boulder Glacier over the years \n with total % loss in area=84.72%", outer=FALSE, line=-4)
 
-#background imagery
-# ADD MAP TITLE
 
 #designate that NDVIraster list is a stack
 NDVIstack <- stack(NDVIraster)
@@ -216,6 +221,8 @@ NDVIstack <- stack(NDVIraster)
 #if NA is missing in first raster, it is missing in all
 #so we can tell R to assign an NA rather than fitting the function
 timeT <- ndviYear
+
+
 fun <- function(x) {
   if(is.na(x[1])){
     NA}else{
@@ -262,21 +269,32 @@ spplot(g2015p, "mean_change_in_NDVI")
 ## Question 11
 #average maximum NDVI across all years within the Glacier National Park
 
-#extent of the park
-park_extent =  NDVIraster[[1]]@extent
+#apply mean function to every cell
+NDVImean <- calc(NDVIstack,mean)
+par(mar=c(1,1,1,1))
+plot(NDVImean)
+title("Average Maximum NDVI from 2013-2016 \n in Glacier National Park", line=-2)
 
-yearly_mean_NDVI<-list()
-NDVIvalues <- list()
-meanvalues <- numeric(0)
+meanNDVI <- zonal(NDVImean, #NDVI function to summarize
+                    glacZones, fun="mean")
+meanNDVI
 
-#loop through all NDVI years
-for(i in 1:length(ndviYear)){
-  #get raster values in the difference polygon
-  NDVIvalues[[i]] <- extract(NDVIraster[[i]], park_extent)[[1]]
-  #calculate the mean of the NDVI values
-  meanvalues[i] <- mean(NDVIvalues[[i]], na.rm=TRUE)
-}
+#adding the data as a column to g2015p
+g2015p@data$meanNDVI <- meanNDVI[2:40, 2]
 
-#mean of all the years
-#### Need to clean the code
+#colors
+
+par(mar=c(1,1,1,1))
+plot(g2015p, border=NA, col="black")
+#background
+plot(subset(g2015p,g2015p@data$meanNDVI<=0.5),col="navyblue",border=NA, add=TRUE)
+plot(subset(g2015p,g2015p@data$meanNDVI<=0.4),col="blue",border=NA, add=TRUE)
+plot(subset(g2015p,g2015p@data$meanNDVI<=0.3),col="green",border=NA, add=TRUE)
+plot(subset(g2015p,g2015p@data$meanNDVI<=0.2),col="yellow",border=NA, add=TRUE)
+plot(subset(g2015p,g2015p@data$meanNDVI<=0.1),col="red",border=NA, add=TRUE)
+
+legend(legend=c("<0.1","0.1-0.2", "0.2-0.3", "0.3-0.4", "0.4-0.5", ">0.5"), fill= c("red", "yellow","green2", "blue","navyblue", "black"), "bottomleft")
+title("Average NDVI of Glaciers", outer=FALSE)
+
+
 
