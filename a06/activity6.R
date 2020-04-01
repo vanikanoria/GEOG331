@@ -181,9 +181,12 @@ percent_change_in_area <- list()
 for (i in 1:length(g2015p)){
   percent_change_in_area[i] = abs(g2015p@data$a2015m.sq[i] - g1966p@data$a1966m.sq[i])*100/g1966p@data$a1966m.sq[i]
 }
+#adding the data as a column to g2015p
 g2015p@data$percent_change_in_area_since_1966 <- percent_change_in_area
-spplot(NDVIraster[[length(ndviYear) -1]], zcol=g2015p@datapercent_change_in_area_since_1966)
-spplot(g2015@data$percent_change_in_area_since_1966,  add=TRUE, border=NA)
+
+#plotting by that column
+spplot(g2015p, "percent_change_in_area_since_1966")
+
 
 ### Question 6
 
@@ -192,20 +195,15 @@ largest_loss_glacier_name <- g2015p@data$GLACNAME[g2015p@data$percent_change_in_
                        max(g2015p@data$percent_change_in_area)]
 largest_loss_glacier_name
 
-for (i in 1:39){
-boulder2015 <- g2015p[g2015p@data$GLACNAME == "Boulder Glacier"]
-boulder2005<- g2005p[g2005p@data$GLACNAME == "Boulder Glacier"]
-boulder1998 <- g1998p[g1998p@data$GLACNAME == "Boulder Glacier"]
-boulder1966 <- g1966p[g1966p@data$GLACNAME == "Boulder Glacier"]
-}
-boulder2015 <- ifelse(g2015@data$GLACNAME == "Boulder Glacier","N. Swiftcurrent Glacier",ifelse(g2015@data$GLACNAME ==  "Miche Wabun", 
-                                          "Miche Wabun Glacier", as.character(g2015@data$GLACNAME)))
+#map plot
+par(mar=c(1,1,1,1))
+plot(subset(g1966,g1966p@data$GLACNAME == "Boulder Glacier"),col="yellow2",border=NA, add=T )
+plot(subset(g1998,g1998@data$GLACNAME == "Boulder Glacier"),col= "palegreen2",border=NA, add=TRUE)
+plot(subset(g2005,g2005@data$GLACNAME == "Boulder Glacier"),col="blue",border=NA, add=TRUE)
+plot(subset(g2015,g2015@data$GLACNAME == "Boulder Glacier"),col= "navyblue",border=NA, add=TRUE)
 
-par(mai=c(1,1,1,1))
-plot(boulder1966, col="yellow2", border=NA )
-plot(boulder2005, col="blue", border=NA, add=TRUE)
-plot(boulder1998, col="palegreen2", add=TRUE, border=NA)
-plot(boulder2015, col= "navyblue", add=TRUE, border=NA)
+legend(legend=c("1966", 1998, 2005, 2015), col= c("yellow2","palegreen2", "blue","navyblue"), "bottomleft", fill=TRUE)
+title()
 
 #background imagery
 # ADD MAP TITLE
@@ -245,4 +243,40 @@ glacRaster <- rasterize(g1966p, NDVIraster[[1]], field=g1966p@data$GLACNAME, bac
 #subtract buffer from original glacier
 glacZones <- buffRaster - glacRaster
 plot(glacZones)
+
+## end of Question 8
+
+meanChange <- zonal(NDVIfit, #NDVI function to summarize
+                    glacZones,#raster with zones
+                    "mean")#function to apply
+meanChange
+
+## Question 9
+
+#adding the data as a column to g2015p
+g2015p@data$mean_change_in_NDVI <- meanChange[2:40, 2]
+
+#plotting by that column
+spplot(g2015p, "mean_change_in_NDVI")
+
+## Question 11
+#average maximum NDVI across all years within the Glacier National Park
+
+#extent of the park
+park_extent =  NDVIraster[[1]]@extent
+
+yearly_mean_NDVI<-list()
+NDVIvalues <- list()
+meanvalues <- numeric(0)
+
+#loop through all NDVI years
+for(i in 1:length(ndviYear)){
+  #get raster values in the difference polygon
+  NDVIvalues[[i]] <- extract(NDVIraster[[i]], park_extent)[[1]]
+  #calculate the mean of the NDVI values
+  meanvalues[i] <- mean(NDVIvalues[[i]], na.rm=TRUE)
+}
+
+#mean of all the years
+#### Need to clean the code
 
