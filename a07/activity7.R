@@ -123,6 +123,27 @@ wetlandsData <- rep("train",120)
 #randomly replace half of the data to be validating data
 wetlandsData[wetlandsSamp] <- "valid"
 
+#create id table that gives each landcover an ID
+landclass <- data.frame(landcID= seq(1,6),
+                        landcover = c("algal bloom", "open water","agriculture","built","forest","wetlands"))
+
+#set up table with coordinates and data type (validate or train) for each point
+landExtract <-  data.frame(landcID = rep(seq(1,6),each=120),
+                           sampleType=c(algData,waterData,agriData,builtData,forestData, wetlandsData),
+                           x=c(algae@coords[,1],water@coords[,1],agri@coords[,1],built@coords[,1],forest@coords[,1],wetlands@coords[,1] ),
+                           y=c(algae@coords[,2],water@coords[,2],agri@coords[,2],built@coords[,2],forest@coords[,2],wetlands@coords[,2] ))
+
+#extract raster data at each point
+#using point coordinates
+rasterEx <- data.frame(extract(allbandsCloudf,landExtract[,3:4]))
+#give names of bands
+colnames(rasterEx) <- c("B2","B3","B4","B5","B6","B7","B8","B11","B12")
+
+#combine point information with raster information
+dataAll <- cbind(landExtract,rasterEx)
+#preview
+head(dataAll)
+
 trainD <- dataAll[dataAll$sampleType == "train",]
 validD <- dataAll[dataAll$sampleType == "valid",]
 
@@ -146,3 +167,41 @@ rf_model <- caret::train(x = trainD[,c(5:13)], #digital number data
                          tuneGrid = rf.grid) #parameter tuning grid
 #check output
 rf_model
+
+# Change name in raster stack to match training data
+names(allbandsCloudf) <- c("B2","B3","B4","B5","B6","B7","B8","B11","B12")
+# Apply the random forest model to the Sentinel-2 data
+rf_prediction <- raster::predict(allbandsCloudf, model=rf_model)
+#view predictions
+plot(rf_prediction)
+
+#landcover class names
+landclass
+
+#set up categorical colors
+landclass$cols <-c("#a6d854","#8da0cb","#66c2a5",
+                   "#fc8d62","#ffffb3","#ffd92f")
+#make plot and hide legend
+plot(rf_prediction,
+     breaks=seq(0,6), 
+     col=landclass$cols ,
+     legend=FALSE, axes=FALSE)
+legend("bottomleft", paste(landclass$landcover),
+       fill=landclass$cols ,bty="n")   
+
+#get validation data from raster by extracting 
+#cell values at the cell coordinates
+rf_Eval <- extract(rf_prediction, validD[,3:4])
+
+#make the confusion matrix
+rf_errorM <- confusionMatrix(as.factor(rf_Eval),as.factor(validD$landcID))
+#add landcover names
+colnames(rf_errorM$table) <- landclass$landcover
+rownames(rf_errorM$table) <- landclass$landcover
+#view the matrix
+rf_errorM$table
+
+#look at the overall accuracy
+rf_errorM$overall
+
+#Question 2
