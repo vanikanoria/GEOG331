@@ -205,3 +205,70 @@ rf_errorM$table
 rf_errorM$overall
 
 #Question 2
+
+## Neural Networks
+
+#set up grid
+nnet.grid <- expand.grid(size = seq(from = 16, to = 28, by = 2), 
+                         # number of neurons units in the hidden layer 
+                         decay = seq(from = 0.1, to = 0.6, by = 0.1)) 
+                        # regularization parameter to avoid over-fitting
+
+nnet_model <- caret::train(x = trainD[,c(5:13)], y = as.factor(trainD$landcID),
+                           method = "nnet", metric="Accuracy", 
+                           trainControl = tc, tuneGrid = nnet.grid,
+                           trace=FALSE)
+
+nnet_model
+
+# Apply the neural network model to the Sentinel-2 data
+nnet_prediction <- raster::predict(allbandsCloudf, model=nnet_model)
+#make plot and hide legend
+plot(nnet_prediction,
+     breaks=seq(0,6), 
+     col=landclass$cols ,
+     legend=FALSE)
+legend("bottomleft", paste(landclass$landcover),
+       fill=landclass$cols ,bty="n")
+
+#extract predictions
+nn_Eval = extract(nnet_prediction, validD[,3:4])
+#confusion matrix
+nn_errorM = confusionMatrix(as.factor(nn_Eval),as.factor(validD$landcID))
+colnames(nn_errorM$table) <- landclass$landcover
+rownames(nn_errorM$table) <- landclass$landcover
+nn_errorM$table
+
+nn_errorM$overall
+
+par(mfrow=c(2,1), mai=c(0,0,0,0))
+#random forest
+plot(rf_prediction,
+     breaks=seq(0,6), 
+     col=landclass$cols ,
+     legend=FALSE)
+#legend
+legend("bottomleft", paste(landclass$landcover),
+       fill=landclass$cols ,bty="n")
+#add title
+mtext("Random Forest", side=3,cex=2, line=-5)
+
+#neural network
+plot(nnet_prediction,
+     breaks=seq(0,6), 
+     col=landclass$cols ,
+     legend=FALSE, axes=FALSE)
+#add legend
+legend("bottomleft", paste(landclass$landcover),
+       fill=landclass$cols, bty="n")   
+#add title
+mtext("Neural network", side=3,cex=2, line=-5)
+
+# end of Question 3
+
+#cell count neural net
+freq(nnet_prediction)
+
+#cell count random forest
+freq(rf_prediction)
+
