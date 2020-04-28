@@ -73,6 +73,10 @@ allbandsCloudf <- stack(allbandsCloud[[1]],allbandsCloud[[2]],allbandsCloud[[3]]
 #view all layers
 plot(allbandsCloudf)
 
+#plotting 4 of the bands to get a closer look at them
+bands4 <-stack(allbandsCloud[[4]], allbandsCloud[[5]],allbandsCloud[[6]],allbandsCloud[[7]])
+plot(bands4)
+
 plotRGB(allbandsCloudf,r=4, g=3, b=2,  
         scale=10000, 
         stretch="lin", 
@@ -264,11 +268,27 @@ legend("bottomleft", paste(landclass$landcover),
 #add title
 mtext("Neural network", side=3,cex=2, line=-5)
 
-# end of Question 3
-
 #cell count neural net
 freq(nnet_prediction)
 
 #cell count random forest
 freq(rf_prediction)
+
+# end of Question 3
+
+## Question 5
+col3 <- c('violet','grey25','violet')
+col2 <- c('grey25','violet')
+leg <- c('agreement','disagreement')
+diff = rf_prediction - nnet_prediction
+plot(diff,
+     breaks = c(-5.5,-0.5,0.5, 5.5),
+     col= col3 ,
+     legend=FALSE, axes=FALSE)
+#add legend
+legend("bottomleft", paste(leg),
+       fill=col2, bty="n")   
+#add title
+mtext("Agreement or Disagreement on Prediction of Landcover\n", side=3,cex=1, line=-3)
+
 
